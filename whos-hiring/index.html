@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="css/style.css">
+  <script
+      src="https://code.jquery.com/jquery-3.2.1.min.js"
+      integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+      crossorigin="anonymous"></script>
+  </script>
+</head>
+
+<body>
+  <h1 id="main_header">Ask HN: Who is hiring?</h1>
+  <h2 id="main_msg">Loading...</h2>
+
+  <label for="month_select">Month</label>
+  <select id="month_select" onChange="monthSelect(this.value)"></select>
+  <label for="region_select">Region</label>
+  <select id="region_select" onChange="regionSelect(this.value)"></select>
+  <div id="posts"></div>
+  <script src="js/index.js"></script>
+</body>
+</html>
