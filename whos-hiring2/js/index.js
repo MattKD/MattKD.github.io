@@ -3723,16 +3723,18 @@ var React = __webpack_require__(124);
 var ReactDOM = __webpack_require__(330);
 
 var _require = __webpack_require__(331),
-    Post = _require.Post,
-    PostList = _require.PostList;
+    month_id_list = _require.month_id_list,
+    region_filter_list = _require.region_filter_list;
 
-var _require2 = __webpack_require__(333),
-    month_id_list = _require2.month_id_list,
-    region_filter_list = _require2.region_filter_list;
+var _require2 = __webpack_require__(332),
+    getSomePosts = _require2.getSomePosts,
+    getPostIDs = _require2.getPostIDs;
 
-var _require3 = __webpack_require__(334),
-    getSomePosts = _require3.getSomePosts,
-    getPostIDs = _require3.getPostIDs;
+var _require3 = __webpack_require__(333),
+    PostLists = _require3.PostLists,
+    RegionSelect = _require3.RegionSelect,
+    MonthSelect = _require3.MonthSelect,
+    LoadMsg = _require3.LoadMsg;
 
 var Month = function () {
   function Month(id, name) {
@@ -3749,7 +3751,7 @@ var Month = function () {
   _createClass(Month, [{
     key: "allPostsLoaded",
     value: function allPostsLoaded() {
-      return this.num_posts == this.num_posts_loaded;
+      return this.num_posts === this.num_posts_loaded;
     }
   }]);
 
@@ -3764,9 +3766,11 @@ var App = function (_React$Component) {
 
     var _this = _possibleConstructorReturn(this, (App.__proto__ || Object.getPrototypeOf(App)).call(this));
 
-    var month_names = month_id_list.map(function (month_id) {
-      return month_id[0];
-    });
+    var month_names = {
+      months: month_id_list.map(function (month_id) {
+        return month_id[0];
+      })
+    };
 
     var months = month_id_list.map(function (month_id) {
       var name = month_id[0];
@@ -3774,14 +3778,19 @@ var App = function (_React$Component) {
       return new Month(id, name);
     });
 
-    var month_lookup = new Map();
+    var month_lookup = {
+      lookup: new Map()
+    };
+
     months.forEach(function (month) {
-      month_lookup.set(month.name, month);
+      month_lookup.lookup.set(month.name, month);
     });
 
-    var region_names = region_filter_list.map(function (region_filter) {
-      return region_filter[0];
-    });
+    var region_names = {
+      regions: region_filter_list.map(function (region_filter) {
+        return region_filter[0];
+      })
+    };
 
     var region_lookup = new Map();
     region_filter_list.forEach(function (region_filters) {
@@ -3793,8 +3802,8 @@ var App = function (_React$Component) {
       region_lookup.set(region, filters);
     });
 
-    var selected_month = month_names[0];
-    var selected_region = region_names[0];
+    var selected_month = month_names.months[0];
+    var selected_region = region_names.regions[0];
 
     _this.state = {
       selected_month: selected_month,
@@ -3808,6 +3817,9 @@ var App = function (_React$Component) {
       delay_size: 50, // initial num of posts to append to dom at a time
       delay_size2: 300 // num of posts to append to dom at a time
     };
+
+    _this.regionChanged = _this.regionChanged.bind(_this);
+    _this.monthChanged = _this.monthChanged.bind(_this);
     return _this;
   }
 
@@ -3822,13 +3834,13 @@ var App = function (_React$Component) {
       var _this2 = this;
 
       var month_lookup = this.state.month_lookup;
-      var month = month_lookup.get(month_name);
+      var month = month_lookup.lookup.get(month_name);
       var posts = month.posts;
 
       var handleNewPost = function handleNewPost(post) {
         posts.push(post);
         _this2.setState({
-          month_lookup: month_lookup
+          month_lookup: { lookup: month_lookup.lookup }
         });
       };
 
@@ -3836,14 +3848,14 @@ var App = function (_React$Component) {
         selected_month: month_name
       });
 
-      if (month.loaded == false) {
+      if (month.loaded === false) {
         month.loaded = true;
         getPostIDs(month.id).then(function (thread) {
           var ids = thread.kids;
           month.num_posts = ids.length;
           month.thread_title = thread.title;
           _this2.setState({
-            month_lookup: month_lookup
+            month_lookup: { lookup: month_lookup.lookup }
           });
 
           var get_num = _this2.state.post_get_num;
@@ -3853,83 +3865,34 @@ var App = function (_React$Component) {
       }
     }
   }, {
+    key: "regionChanged",
+    value: function regionChanged(event) {
+      if (event.target.value) {
+        this.setState({
+          selected_region: event.target.value
+        });
+      }
+    }
+  }, {
+    key: "monthChanged",
+    value: function monthChanged(event) {
+      if (event.target.value) {
+        this.setMonth(event.target.value);
+      }
+    }
+  }, {
     key: "render",
     value: function render() {
-      var _this3 = this;
-
-      var regionSelect = this.state.region_names.map(function (region) {
-        return React.createElement(
-          "option",
-          { key: region, value: region },
-          region
-        );
-      });
-
-      var monthSelect = this.state.month_names.map(function (month) {
-        return React.createElement(
-          "option",
-          { key: month, value: month },
-          month
-        );
-      });
-
-      var regionChanged = function regionChanged(event) {
-        if (event.target.value) {
-          _this3.setState({
-            selected_region: event.target.value
-          });
-        }
-      };
-
-      var monthChanged = function monthChanged(event) {
-        if (event.target.value) {
-          _this3.setMonth(event.target.value);
-        }
-      };
-
-      var month = this.state.month_lookup.get(this.state.selected_month);
+      var selected_month = this.state.selected_month;
+      var month_lookup = this.state.month_lookup;
+      var month_names = this.state.month_names;
+      var month = month_lookup.lookup.get(selected_month);
       var posts = month.posts;
       var filters = this.state.region_lookup.get(this.state.selected_region);
-
       var num_loaded = month.posts.length;
       var num_posts = month.num_posts;
-      var load_msg_str = "Loading... (" + num_loaded + "/" + num_posts + ")";
-      var loadingStyle = {
-        display: num_loaded == num_posts ? "none" : "block"
-      };
-      var load_msg = React.createElement(
-        "h2",
-        { style: loadingStyle },
-        load_msg_str
-      );
-
       var delay_size = this.state.delay_size;
       var delay_size2 = this.state.delay_size2;
-
-      var post_lists = this.state.month_names.map(function (name) {
-        var month = _this3.state.month_lookup.get(name);
-        var posts = month.posts;
-
-        var num_show = 0;
-        if (posts.length == month.num_posts) {
-          num_show = posts.length;
-        } else if (posts.length == delay_size) {
-          num_show = delay_size;
-        } else if (posts.length > delay_size) {
-          num_show = Math.trunc(posts.length / delay_size2) * delay_size2;
-        }
-
-        var show = name == _this3.state.selected_month;
-        var list_style = {
-          display: show ? "block" : "none"
-        };
-
-        return React.createElement(
-          "div",
-          { style: list_style, key: name },
-          React.createElement(PostList, { posts: posts, filters: filters, num_show: num_show })
-        );
-      });
 
       return React.createElement(
         "div",
@@ -3940,32 +3903,13 @@ var App = function (_React$Component) {
           month.thread_title,
           " "
         ),
-        load_msg,
-        React.createElement(
-          "div",
-          null,
-          React.createElement(
-            "label",
-            { htmlFor: "month_select" },
-            "Month"
-          ),
-          React.createElement(
-            "select",
-            { id: "month_select", onChange: monthChanged },
-            monthSelect
-          ),
-          React.createElement(
-            "label",
-            { htmlFor: "state_select" },
-            "Region"
-          ),
-          React.createElement(
-            "select",
-            { id: "state_select", onChange: regionChanged },
-            regionSelect
-          )
-        ),
-        post_lists
+        React.createElement(LoadMsg, { num_loaded: num_loaded, num_posts: num_posts }),
+        React.createElement(MonthSelect, { monthChanged: this.monthChanged, months: month_names }),
+        React.createElement(RegionSelect, { regionChanged: this.regionChanged,
+          regions: this.state.region_names }),
+        React.createElement(PostLists, { selected_month: selected_month, months: month_names,
+          lookup: month_lookup, delay_size: delay_size,
+          delay_size2: delay_size2, filters: filters })
       );
     }
   }]);
@@ -9778,6 +9722,62 @@ module.exports = ReactDOM;
 "use strict";
 
 
+module.exports.month_id_list = [["October-17", 15384262], ["September-17", 15148885], ["August-17", 14901313], ["July-17", 14688684], ["June-17", 14460777], ["May-17", 14238005], ["April-17", 14023198]];
+
+module.exports.region_filter_list = [["All", []], ["Remote", ["remote/i"], ["no remote/i"]], ["Arkansas", ["Arkansas", "Little Rock"]], ["Arizona", ["Arizona", "Phoenix", "PHX", "Scottdale"]], ["California", ["California", "San Francisco", "San Diego", "Los Angeles", "Bay Area", "SF", "LA", "San Mateo", "Mountain View", "Irvine", "Orange County", "Palo Alto", "Menlo Park", "San Jose", "Sunnyvale", "Cupertino", "Santa Clara", "CA", "Redwood"]], ["Colorado", ["Colorado", "CO", "Boulder"]], ["Florida", ["Florida", "FL", "Orlando", "Miami", "Fort Lauderdale"]], ["Idaho", ["Idaho", "ID", "Boise"]], ["Illinois", ["Illinois", "Chicago"]], ["Kansas", ["Kansas", "KS"]], ["Maryland", ["Maryland", "MD", "Baltimore"]], ["Massachusetts", ["Massachusetts", "MA", "Boston", "BOS"]], ["Michigan", ["Michigan", "MI", "Detroit"]], ["Minnesota", ["Minnesota", "Minneapolis", "MSP"]], ["New Hampshire", ["New Hampshire", "NH", "Nashua"]], ["New York", ["New York", "NY", "NYC", "Buffalo", "Brooklyn"]], ["North Carolina", ["North Carolina", "NC", "Charlotte", "Raleigh"]], ["Ohio", ["Ohio", "Cleveland", "Columbus"]], ["Oregon", ["OR", "Portland", "Oregon"]], ["Pennsylvania", ["Pennsylvania", "PA", "Pittsburgh", "Philadelphia"]], ["Texas", ["Texas", "TX", "Austin", "Houston", "Dallas"]], ["Utah", ["Utah", "Salt Lake City", "SLC"]], ["Virginia", ["Virginia", "Richmond", "Reston", "VA"]], ["Washington", ["WA", "Seattle", "Bellavue", "Redmond"]], ["Washington DC", ["DC"]], ["Australia", ["Melbourne", "Sydney", "Brisbane", "Perth", "Australia"]], ["Austria", ["Vienna", "Austria"]], ["Canada", ["Vancouver", "Canada", "Montreal", "Toronto", "Quebec"]], ["Colombia", ["Colombia"]], ["Denmark", ["Denmark", "Copenhagen"]], ["Estonia", ["Estonia", "Tallinn"]], ["France", ["France", "Paris"]], ["Germany", ["Germany", "Berlin", "Munich", "Hamburg", "Cologne"]], ["Ireland", ["Ireland", "Dublin"]], ["Israel", ["Israel", "Tel Aviv"]], ["Italy", ["Italy", "Venice", "Florence", "Milan"]], ["Netherlands", ["Amsterdam", "Netherlands"]], ["Singapore", ["Singapore"]], ["Spain", ["Spain", "Barcelona"]], ["Switzerland", ["Switzerland", "Lausanne"]], ["Sweden", ["Sweden", "Stockholm"]], ["UK", ["London", "UK", "Birmingham", "Manchester", "Glasgow", "Newcastle", "Edinburgh"]]];
+
+/***/ }),
+/* 332 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+function fetchPost(id) {
+  var url = "https://hacker-news.firebaseio.com/v0/item/" + id + ".json?print=pretty";
+
+  return fetch(url, {
+    method: "GET"
+  }).then(function (res) {
+    return res.json();
+  });
+};
+
+function getPostIDs(month_id) {
+  return fetchPost(month_id).then(function (res) {
+    return res;
+  });
+};
+
+function getSomePosts(ids, num, timeout, cb) {
+  var get_ids = ids.slice(0, num);
+  for (var i = 0; i < get_ids.length; i++) {
+    getPost(ids[i]).then(cb);
+  }
+  if (ids.length > num) {
+    ids = ids.slice(num);
+    setTimeout(function () {
+      getSomePosts(ids, num, timeout, cb);
+    }, timeout);
+  }
+}
+
+function getPost(id) {
+  return fetchPost(id);
+}
+
+module.exports.fetchPost = fetchPost;
+module.exports.getPostIDs = getPostIDs;
+module.exports.getPost = getPost;
+module.exports.getSomePosts = getSomePosts;
+
+/***/ }),
+/* 333 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -9788,26 +9788,169 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
 
 var React = __webpack_require__(124);
 
-var _require = __webpack_require__(332),
+var _require = __webpack_require__(334),
     filterPost = _require.filterPost;
 
-function Post(props) {
-  var url = "https://news.ycombinator.com/item?id=" + props.id;
+var LoadMsg = function (_React$PureComponent) {
+  _inherits(LoadMsg, _React$PureComponent);
 
-  return React.createElement(
-    "div",
-    null,
-    React.createElement(
-      "a",
-      { href: url, target: "_blank" },
-      url
-    ),
-    React.createElement("div", { dangerouslySetInnerHTML: { __html: props.text } })
-  );
-};
+  function LoadMsg() {
+    _classCallCheck(this, LoadMsg);
 
-var PostList = function (_React$PureComponent) {
-  _inherits(PostList, _React$PureComponent);
+    return _possibleConstructorReturn(this, (LoadMsg.__proto__ || Object.getPrototypeOf(LoadMsg)).apply(this, arguments));
+  }
+
+  _createClass(LoadMsg, [{
+    key: "render",
+    value: function render() {
+      var num_loaded = this.props.num_loaded;
+      var num_posts = this.props.num_posts;
+      var load_msg_str = "Loading... (" + num_loaded + "/" + num_posts + ")";
+      var loadingStyle = {
+        display: num_loaded === num_posts ? "none" : "block"
+      };
+
+      return React.createElement(
+        "h2",
+        { style: loadingStyle },
+        load_msg_str
+      );
+    }
+  }]);
+
+  return LoadMsg;
+}(React.PureComponent);
+
+var RegionSelect = function (_React$PureComponent2) {
+  _inherits(RegionSelect, _React$PureComponent2);
+
+  function RegionSelect() {
+    _classCallCheck(this, RegionSelect);
+
+    return _possibleConstructorReturn(this, (RegionSelect.__proto__ || Object.getPrototypeOf(RegionSelect)).apply(this, arguments));
+  }
+
+  _createClass(RegionSelect, [{
+    key: "render",
+    value: function render() {
+      var regions = this.props.regions.regions;
+      var regionChanged = this.props.regionChanged;
+
+      var regionSelect = regions.map(function (region) {
+        return React.createElement(
+          "option",
+          { key: region, value: region },
+          region
+        );
+      });
+
+      return React.createElement(
+        "span",
+        null,
+        React.createElement(
+          "label",
+          { htmlFor: "state_select" },
+          "Region"
+        ),
+        React.createElement(
+          "select",
+          { id: "state_select", onChange: regionChanged },
+          regionSelect
+        )
+      );
+    }
+  }]);
+
+  return RegionSelect;
+}(React.PureComponent);
+
+var MonthSelect = function (_React$PureComponent3) {
+  _inherits(MonthSelect, _React$PureComponent3);
+
+  function MonthSelect() {
+    _classCallCheck(this, MonthSelect);
+
+    return _possibleConstructorReturn(this, (MonthSelect.__proto__ || Object.getPrototypeOf(MonthSelect)).apply(this, arguments));
+  }
+
+  _createClass(MonthSelect, [{
+    key: "render",
+    value: function render() {
+      var months = this.props.months.months;
+      var monthChanged = this.props.monthChanged;
+
+      var monthSelect = months.map(function (month) {
+        return React.createElement(
+          "option",
+          { key: month, value: month },
+          month
+        );
+      });
+
+      return React.createElement(
+        "span",
+        null,
+        React.createElement(
+          "label",
+          { htmlFor: "month_select" },
+          "Month"
+        ),
+        React.createElement(
+          "select",
+          { id: "month_select", onChange: monthChanged },
+          monthSelect
+        )
+      );
+    }
+  }]);
+
+  return MonthSelect;
+}(React.PureComponent);
+
+var Post = function (_React$Component) {
+  _inherits(Post, _React$Component);
+
+  function Post() {
+    _classCallCheck(this, Post);
+
+    return _possibleConstructorReturn(this, (Post.__proto__ || Object.getPrototypeOf(Post)).apply(this, arguments));
+  }
+
+  _createClass(Post, [{
+    key: "shouldComponentUpdate",
+    value: function shouldComponentUpdate(nextProps) {
+      if (nextProps.show === true) {
+        return true;
+      }
+      return false;
+    }
+  }, {
+    key: "render",
+    value: function render() {
+      var id = this.props.id;
+      var text = this.props.text;
+      var url = "https://news.ycombinator.com/item?id=" + id;
+
+      return React.createElement(
+        "div",
+        null,
+        React.createElement(
+          "a",
+          { href: url, target: "_blank" },
+          url
+        ),
+        React.createElement("div", { dangerouslySetInnerHTML: { __html: text } })
+      );
+    }
+  }]);
+
+  return Post;
+}(React.Component);
+
+;
+
+var PostList = function (_React$Component2) {
+  _inherits(PostList, _React$Component2);
 
   function PostList() {
     _classCallCheck(this, PostList);
@@ -9816,6 +9959,14 @@ var PostList = function (_React$PureComponent) {
   }
 
   _createClass(PostList, [{
+    key: "shouldComponentUpdate",
+    value: function shouldComponentUpdate(nextProps) {
+      if (nextProps.show === true) {
+        return true;
+      }
+      return false;
+    }
+  }, {
     key: "render",
     value: function render() {
       var posts = this.props.posts;
@@ -9842,15 +9993,91 @@ var PostList = function (_React$PureComponent) {
   }]);
 
   return PostList;
-}(React.PureComponent);
+}(React.Component);
 
 ;
 
+var PostLists = function (_React$Component3) {
+  _inherits(PostLists, _React$Component3);
+
+  function PostLists() {
+    _classCallCheck(this, PostLists);
+
+    return _possibleConstructorReturn(this, (PostLists.__proto__ || Object.getPrototypeOf(PostLists)).apply(this, arguments));
+  }
+
+  _createClass(PostLists, [{
+    key: "shouldComponentUpdate",
+    value: function shouldComponentUpdate(nextProps) {
+      if (this.props.selected_month != nextProps.selected_month || this.props.delay_size != nextProps.delay_size || this.props.delay_size2 != nextProps.delay_size2 || this.props.months != nextProps.months || this.props.filters != nextProps.filters) {
+        return true;
+      }
+
+      if (this.props.lookup != nextProps.lookup) {
+        var lookup = nextProps.lookup.lookup;
+        var month = lookup.get(nextProps.selected_month);
+        var posts = month.posts;
+        var num_loaded = posts.length;
+        var num_posts = posts.num_posts;
+        var delay_size = nextProps.delay_size;
+        var delay_size2 = nextProps.delay_size2;
+
+        if (num_loaded === num_posts || num_loaded === delay_size || num_loaded > delay_size && num_loaded % delay_size2 === 0) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+  }, {
+    key: "render",
+    value: function render() {
+      var _this7 = this;
+
+      var delay_size = this.props.delay_size;
+      var delay_size2 = this.props.delay_size2;
+      var months = this.props.months.months;
+      var month_lookup = this.props.lookup.lookup;
+      var filters = this.props.filters;
+
+      var post_lists = months.map(function (name) {
+        var month = month_lookup.get(name);
+        var posts = month.posts;
+
+        var show = name === _this7.props.selected_month;
+        var list_style = {
+          display: show ? "block" : "none"
+        };
+
+        return React.createElement(
+          "div",
+          { style: list_style, key: name },
+          React.createElement(PostList, { posts: posts, filters: filters, show: show })
+        );
+      });
+
+      return React.createElement(
+        "div",
+        null,
+        post_lists
+      );
+    }
+  }]);
+
+  return PostLists;
+}(React.Component);
+
+;
+
+module.exports.LoadMsg = LoadMsg;
 module.exports.Post = Post;
 module.exports.PostList = PostList;
+module.exports.PostLists = PostLists;
+module.exports.RegionSelect = RegionSelect;
+module.exports.MonthSelect = MonthSelect;
 
 /***/ }),
-/* 332 */
+/* 334 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -9864,7 +10091,7 @@ function filterPost(post, filters) {
   var filter_strs = filters.filters;
   var negfilter_strs = filters.negfilters;
 
-  if (filter_strs.length == 0) {
+  if (filter_strs.length === 0) {
     return true;
   }
 
@@ -9911,62 +10138,6 @@ function filterPost(post, filters) {
 }
 
 module.exports.filterPost = filterPost;
-
-/***/ }),
-/* 333 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-module.exports.month_id_list = [["October-17", 15384262], ["September-17", 15148885], ["August-17", 14901313], ["July-17", 14688684], ["June-17", 14460777], ["May-17", 14238005], ["April-17", 14023198]];
-
-module.exports.region_filter_list = [["All", []], ["Remote", ["remote/i"], ["no remote/i"]], ["Arkansas", ["Arkansas", "Little Rock"]], ["Arizona", ["Arizona", "Phoenix", "PHX", "Scottdale"]], ["California", ["California", "San Francisco", "San Diego", "Los Angeles", "Bay Area", "SF", "LA", "San Mateo", "Mountain View", "Irvine", "Orange County", "Palo Alto", "Menlo Park", "San Jose", "Sunnyvale", "Cupertino", "Santa Clara", "CA", "Redwood"]], ["Colorado", ["Colorado", "CO", "Boulder"]], ["Florida", ["Florida", "FL", "Orlando", "Miami", "Fort Lauderdale"]], ["Idaho", ["Idaho", "ID", "Boise"]], ["Illinois", ["Illinois", "Chicago"]], ["Kansas", ["Kansas", "KS"]], ["Maryland", ["Maryland", "MD", "Baltimore"]], ["Massachusetts", ["Massachusetts", "MA", "Boston", "BOS"]], ["Michigan", ["Michigan", "MI", "Detroit"]], ["Minnesota", ["Minnesota", "Minneapolis", "MSP"]], ["New Hampshire", ["New Hampshire", "NH", "Nashua"]], ["New York", ["New York", "NY", "NYC", "Buffalo", "Brooklyn"]], ["North Carolina", ["North Carolina", "NC", "Charlotte", "Raleigh"]], ["Ohio", ["Ohio", "Cleveland", "Columbus"]], ["Oregon", ["OR", "Portland", "Oregon"]], ["Pennsylvania", ["Pennsylvania", "PA", "Pittsburgh", "Philadelphia"]], ["Texas", ["Texas", "TX", "Austin", "Houston", "Dallas"]], ["Utah", ["Utah", "Salt Lake City", "SLC"]], ["Virginia", ["Virginia", "Richmond", "Reston", "VA"]], ["Washington", ["WA", "Seattle", "Bellavue", "Redmond"]], ["Washington DC", ["DC"]], ["Australia", ["Melbourne", "Sydney", "Brisbane", "Perth", "Australia"]], ["Austria", ["Vienna", "Austria"]], ["Canada", ["Vancouver", "Canada", "Montreal", "Toronto", "Quebec"]], ["Colombia", ["Colombia"]], ["Denmark", ["Denmark", "Copenhagen"]], ["Estonia", ["Estonia", "Tallinn"]], ["France", ["France", "Paris"]], ["Germany", ["Germany", "Berlin", "Munich", "Hamburg", "Cologne"]], ["Ireland", ["Ireland", "Dublin"]], ["Israel", ["Israel", "Tel Aviv"]], ["Italy", ["Italy", "Venice", "Florence", "Milan"]], ["Netherlands", ["Amsterdam", "Netherlands"]], ["Singapore", ["Singapore"]], ["Spain", ["Spain", "Barcelona"]], ["Switzerland", ["Switzerland", "Lausanne"]], ["Sweden", ["Sweden", "Stockholm"]], ["UK", ["London", "UK", "Birmingham", "Manchester", "Glasgow", "Newcastle", "Edinburgh"]]];
-
-/***/ }),
-/* 334 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-function fetchPost(id) {
-  var url = "https://hacker-news.firebaseio.com/v0/item/" + id + ".json?print=pretty";
-
-  return fetch(url, {
-    method: "GET"
-  }).then(function (res) {
-    return res.json();
-  });
-};
-
-function getPostIDs(month_id) {
-  return fetchPost(month_id).then(function (res) {
-    return res;
-  });
-};
-
-function getSomePosts(ids, num, timeout, cb) {
-  var get_ids = ids.slice(0, num);
-  for (var i = 0; i < get_ids.length; i++) {
-    getPost(ids[i]).then(cb);
-  }
-  if (ids.length > num) {
-    ids = ids.slice(num);
-    setTimeout(function () {
-      getSomePosts(ids, num, timeout, cb);
-    }, timeout);
-  }
-}
-
-function getPost(id) {
-  return fetchPost(id);
-}
-
-module.exports.fetchPost = fetchPost;
-module.exports.getPostIDs = getPostIDs;
-module.exports.getPost = getPost;
-module.exports.getSomePosts = getSomePosts;
 
 /***/ })
 /******/ ]);
